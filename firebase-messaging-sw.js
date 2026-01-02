@@ -2,17 +2,18 @@ importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
 importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js");
 
 firebase.initializeApp({
- apiKey:"PUT_YOUR_KEY",
- authDomain:"PUT_YOUR.firebaseapp.com",
- projectId:"PUT_YOUR",
- messagingSenderId:"PUT_YOUR",
- appId:"PUT_YOUR"
+ apiKey: "AIzaSyBRsUv_dJVjchdoqUodq95tQ8gUEJyUH_c",
+ authDomain: "study-buddy-1ca03.firebaseapp.com",
+ projectId: "study-buddy-1ca03",
+ messagingSenderId: "441262046694",
+ appId: "1:441262046694:web:7aede45840e6a636a5aa27",
 });
 
-const messaging=firebase.messaging();
-messaging.onBackgroundMessage(payload=>{
- self.registration.showNotification("Study Buddy",{
-  body:payload.notification.body,
-  icon:"icon.png"
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+ self.registration.showNotification("Study Buddy", {
+   body: payload.notification.body,
+   icon: "icon.png",
  });
 });
