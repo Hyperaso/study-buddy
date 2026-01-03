@@ -72,6 +72,7 @@ button:hover {
   background:#16a34a;
 }
 
+/* TASK STYLES */
 .task {
   background:#1e293b;
   border-radius:12px;
@@ -88,17 +89,56 @@ button:hover {
   color:#94a3b8;
 }
 
-.task button {
-  width:auto;
-  padding:6px 12px;
-  margin-top:8px;
-  background:#3b82f6;
-  border-radius:8px;
-  color:white;
+/* TASK CONTROLS */
+.task-controls{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin-top:10px;
 }
 
-.task button:hover {
-  background:#2563eb;
+.task-left{
+ display:flex;
+ align-items:center;
+ gap:10px;
+}
+
+.task-left input[type=checkbox]{
+ width:20px;
+ height:20px;
+ accent-color:#22c55e;
+ cursor:pointer;
+}
+
+.task-actions{
+ display:flex;
+ gap:8px;
+}
+
+.btn-icon{
+ background:#020617;
+ border:1px solid #334155;
+ color:white;
+ padding:6px 10px;
+ border-radius:8px;
+ font-size:14px;
+ cursor:pointer;
+ transition:.2s;
+}
+
+.btn-icon:hover{
+ background:#22c55e;
+ color:#020617;
+}
+
+.btn-danger:hover{
+ background:#ef4444;
+ color:white;
+}
+
+.btn-secondary:hover{
+ background:#3b82f6;
+ color:white;
 }
 
 .date-inputs {
@@ -190,6 +230,8 @@ navigator.serviceWorker.register("firebase-messaging-sw.js");
 
 // USER & TASKS
 let user="", tasks=[];
+const tasksDiv=document.getElementById("tasks");
+const finishedTasks=document.getElementById("finishedTasks");
 
 // LOGIN
 function login(){
@@ -207,10 +249,10 @@ if(localStorage.user){user=localStorage.user;login();}
 
 // ADD TASK
 function addTask(){
- const t=taskText.value.trim();
- const m=month.value;
- const d=day.value;
- const ti=time.value;
+ const t=document.getElementById("taskText").value.trim();
+ const m=document.getElementById("month").value;
+ const d=document.getElementById("day").value;
+ const ti=document.getElementById("time").value;
  if(!t||!m||!d||!ti) return alert("Fill all fields");
 
  const deadline=new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${ti}:00`).getTime();
@@ -222,20 +264,62 @@ function addTask(){
 function saveTasks(){localStorage.tasks=JSON.stringify(tasks);}
 function loadTasks(){tasks=JSON.parse(localStorage.tasks||"[]"); renderTasks();}
 
-// RENDER
+// TASK CONTROLS
+function markDone(i){tasks[i].done=true; saveTasks(); renderTasks();}
+function deleteTask(i){tasks.splice(i,1); saveTasks(); renderTasks();}
+function editTask(i){
+ const t = prompt("Edit task name:", tasks[i].t);
+ if(t){
+   tasks[i].t = t;
+   const m = prompt("Edit month (1-12):", new Date(tasks[i].deadline).getMonth()+1);
+   const d = prompt("Edit day:", new Date(tasks[i].deadline).getDate());
+   const time = prompt("Edit time (HH:MM):", new Date(tasks[i].deadline).toTimeString().slice(0,5));
+   if(m && d && time){
+     tasks[i].deadline = new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${time}:00`).getTime();
+   }
+   saveTasks(); renderTasks();
+ }
+}
+function redoTask(i){tasks[i].done=false; saveTasks(); renderTasks();}
+
+// RENDER TASKS
 function renderTasks(){
  tasksDiv.innerHTML=""; finishedTasks.innerHTML="";
  tasks.forEach((x,i)=>{
   const d=document.createElement("div");
   d.className="task"+(x.done?" completed":"");
   const dt=new Date(x.deadline).toLocaleString();
-  d.innerHTML=x.done?`${x.t}<br>${dt}`:`${x.t}<br>${dt}<br><button onclick="markDone(${i})">Done</button>`;
-  (x.done?finishedTasks:tasksDiv).appendChild(d);
+
+  if(!x.done){ // Active task
+    d.innerHTML = `
+    <div class="task-controls">
+      <div class="task-left">
+        <input type="checkbox" onchange="markDone(${i})">
+        <b>${x.t}</b>
+      </div>
+      <div class="task-actions">
+        <button class="btn-icon btn-secondary" onclick="editTask(${i})">⋮</button>
+        <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
+      </div>
+    </div>
+    <small>${dt}</small>
+    `;
+    tasksDiv.appendChild(d);
+  } else { // Finished task
+    d.innerHTML = `
+    <div class="task-controls">
+      <b>${x.t}</b>
+      <div class="task-actions">
+        <button class="btn-icon btn-secondary" onclick="redoTask(${i})">↩</button>
+        <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
+      </div>
+    </div>
+    <small>${dt}</small>
+    `;
+    finishedTasks.appendChild(d);
+  }
  });
 }
-
-// DONE
-function markDone(i){tasks[i].done=true; saveTasks(); renderTasks();}
 
 // MOTIVATION LIST
 const motivation=[
@@ -289,5 +373,3 @@ setInterval(sendGlobalMotivation,1200000); // motivation 20 mins
 </script>
 </body>
 </html>
-
-
