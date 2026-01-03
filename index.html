@@ -141,6 +141,7 @@ button:hover {
  color:white;
 }
 
+/* DATE INPUTS */
 .date-inputs {
   display:flex;
   gap:5px;
@@ -152,6 +153,7 @@ button:hover {
   flex:1;
 }
 
+/* SECTION */
 .section {
   margin-top:20px;
   width:100%;
@@ -166,6 +168,38 @@ button:hover {
   display:flex;
   flex-direction:column;
   width:100%;
+}
+
+/* EDIT MODAL */
+#editModal{
+ display:none;
+ position:fixed;
+ top:0; left:0;
+ width:100%; height:100%;
+ background:rgba(0,0,0,0.7);
+ justify-content:center;
+ align-items:center;
+ z-index:1000;
+}
+
+#editModal .modal-content{
+ background:#1e293b;
+ padding:20px;
+ border-radius:15px;
+ width:300px;
+ display:flex;
+ flex-direction:column;
+ gap:10px;
+}
+
+#editModal input{
+ width:100%;
+}
+
+.modal-buttons{
+ display:flex;
+ justify-content:space-between;
+ gap:10px;
 }
 </style>
 </head>
@@ -204,6 +238,23 @@ button:hover {
 </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div id="editModal">
+<div class="modal-content">
+<h3>Edit Task</h3>
+<input id="editTaskName" placeholder="Task name">
+<div class="date-inputs">
+<input id="editMonth" type="number" placeholder="Month" min="1" max="12">
+<input id="editDay" type="number" placeholder="Day" min="1" max="31">
+</div>
+<input id="editTime" type="time">
+<div class="modal-buttons">
+<button onclick="saveEdit()">Save</button>
+<button onclick="closeEdit()">Cancel</button>
+</div>
+</div>
+</div>
+
 <audio id="notifSound" src="ping.mp3"></audio>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -230,6 +281,7 @@ navigator.serviceWorker.register("firebase-messaging-sw.js");
 
 // USER & TASKS
 let user="", tasks=[];
+let editIndex=null;
 const tasksDiv=document.getElementById("tasks");
 const finishedTasks=document.getElementById("finishedTasks");
 
@@ -245,7 +297,13 @@ function login(){
 }
 
 // AUTO LOGIN
-if(localStorage.user){user=localStorage.user;login();}
+if(localStorage.user){
+ user=localStorage.user;
+ document.getElementById("hi").innerText="Hi "+user+"!";
+ document.getElementById("login").style.display="none";
+ document.getElementById("main").style.display="block";
+ loadTasks();
+}
 
 // ADD TASK
 function addTask(){
@@ -267,18 +325,28 @@ function loadTasks(){tasks=JSON.parse(localStorage.tasks||"[]"); renderTasks();}
 // TASK CONTROLS
 function markDone(i){tasks[i].done=true; saveTasks(); renderTasks();}
 function deleteTask(i){tasks.splice(i,1); saveTasks(); renderTasks();}
-function editTask(i){
- const t = prompt("Edit task name:", tasks[i].t);
- if(t){
-   tasks[i].t = t;
-   const m = prompt("Edit month (1-12):", new Date(tasks[i].deadline).getMonth()+1);
-   const d = prompt("Edit day:", new Date(tasks[i].deadline).getDate());
-   const time = prompt("Edit time (HH:MM):", new Date(tasks[i].deadline).toTimeString().slice(0,5));
-   if(m && d && time){
-     tasks[i].deadline = new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${time}:00`).getTime();
-   }
-   saveTasks(); renderTasks();
- }
+function openEdit(i){
+ editIndex=i;
+ document.getElementById("editTaskName").value = tasks[i].t;
+ const d = new Date(tasks[i].deadline);
+ document.getElementById("editMonth").value = d.getMonth()+1;
+ document.getElementById("editDay").value = d.getDate();
+ document.getElementById("editTime").value = d.toTimeString().slice(0,5);
+ document.getElementById("editModal").style.display="flex";
+}
+function closeEdit(){
+ editIndex=null;
+ document.getElementById("editModal").style.display="none";
+}
+function saveEdit(){
+ const t=document.getElementById("editTaskName").value.trim();
+ const m=document.getElementById("editMonth").value;
+ const d=document.getElementById("editDay").value;
+ const ti=document.getElementById("editTime").value;
+ if(!t||!m||!d||!ti) return alert("Fill all fields");
+ tasks[editIndex].t = t;
+ tasks[editIndex].deadline = new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${ti}:00`).getTime();
+ saveTasks(); renderTasks(); closeEdit();
 }
 function redoTask(i){tasks[i].done=false; saveTasks(); renderTasks();}
 
@@ -298,7 +366,7 @@ function renderTasks(){
         <b>${x.t}</b>
       </div>
       <div class="task-actions">
-        <button class="btn-icon btn-secondary" onclick="editTask(${i})">⋮</button>
+        <button class="btn-icon btn-secondary" onclick="openEdit(${i})">⋮</button>
         <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
       </div>
     </div>
