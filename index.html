@@ -2,442 +2,158 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Study Buddy</title>
 <link rel="manifest" href="manifest.json">
 <style>
-body {
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:#0f172a;
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  padding:20px 0;
-  min-height:100vh;
-}
+body{margin:0;font-family:Arial;background:#020617;color:white;display:flex;justify-content:center}
+#app{width:390px;min-height:100vh;padding:15px}
+h2{color:#22c55e;text-align:center}
+input,button{width:100%;padding:12px;border-radius:10px;border:none;margin-top:8px}
+button{background:#22c55e;font-weight:bold}
 
-#app {
-  width:390px;
-  max-width:100%;
-  min-height:100vh;
-  background:#020617;
-  border-radius:20px;
-  box-shadow:0 8px 25px rgba(0,0,0,0.3);
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  box-sizing:border-box;
-}
+.task{background:#1e293b;padding:12px;border-radius:12px;margin-top:10px}
+.task.due{border:2px solid #ef4444}
+.task.completed{text-decoration:line-through;color:#94a3b8}
+.actions{display:flex;justify-content:space-between;margin-top:8px}
+.btn{background:#020617;border:1px solid #334155;color:white;padding:6px 10px;border-radius:8px}
 
-h2 {
-  text-align:center;
-  color:#22c55e;
-  margin-bottom:20px;
-}
-
-h3 {
-  color:#f8fafc;
-  margin-top:20px;
-  width:100%;
-  border-bottom:1px solid #334155;
-  padding-bottom:5px;
-}
-
-input, button {
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:none;
-  margin-top:8px;
-  font-size:16px;
-  box-sizing:border-box;
-}
-
-input:focus {
-  outline:none;
-  border:1px solid #22c55e;
-}
-
-button {
-  background:#22c55e;
-  color:#020617;
-  font-weight:bold;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-button:hover {
-  background:#16a34a;
-}
-
-/* TASK STYLES */
-.task {
-  background:#1e293b;
-  border-radius:12px;
-  padding:12px;
-  margin-top:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.3);
-  width:100%;
-  box-sizing:border-box;
-  color:#f8fafc;
-}
-
-.task.completed {
-  text-decoration:line-through;
-  color:#94a3b8;
-}
-
-/* TASK CONTROLS */
-.task-controls{
- display:flex;
- justify-content:space-between;
- align-items:center;
- margin-top:10px;
-}
-
-.task-left{
- display:flex;
- align-items:center;
- gap:10px;
-}
-
-.task-left input[type=checkbox]{
- width:20px;
- height:20px;
- accent-color:#22c55e;
- cursor:pointer;
-}
-
-.task-actions{
- display:flex;
- gap:8px;
-}
-
-.btn-icon{
- background:#020617;
- border:1px solid #334155;
- color:white;
- padding:6px 10px;
- border-radius:8px;
- font-size:14px;
- cursor:pointer;
- transition:.2s;
-}
-
-.btn-icon:hover{
- background:#22c55e;
- color:#020617;
-}
-
-.btn-danger:hover{
- background:#ef4444;
- color:white;
-}
-
-.btn-secondary:hover{
- background:#3b82f6;
- color:white;
-}
-
-/* DATE INPUTS */
-.date-inputs {
-  display:flex;
-  gap:5px;
-  margin-top:8px;
-  width:100%;
-}
-
-.date-inputs input {
-  flex:1;
-}
-
-/* SECTION */
-.section {
-  margin-top:20px;
-  width:100%;
-}
-
-.section h3 {
-  margin-bottom:10px;
-  color:#f8fafc;
-}
-
-#tasks, #finishedTasks {
-  display:flex;
-  flex-direction:column;
-  width:100%;
-}
-
-/* EDIT MODAL */
-#editModal{
- display:none;
- position:fixed;
- top:0; left:0;
- width:100%; height:100%;
- background:rgba(0,0,0,0.7);
- justify-content:center;
- align-items:center;
- z-index:1000;
-}
-
-#editModal .modal-content{
- background:#1e293b;
- padding:20px;
- border-radius:15px;
- width:300px;
- display:flex;
- flex-direction:column;
- gap:10px;
-}
-
-#editModal input{
- width:100%;
-}
-
-.modal-buttons{
- display:flex;
- justify-content:space-between;
- gap:10px;
-}
+/* GLOBAL BAR */
+#globalBox{margin-top:25px}
+#globalMsg{text-align:center;margin-bottom:6px;font-size:13px;color:#a5f3fc}
+#globalWrap{height:14px;background:#334155;border-radius:12px;overflow:hidden}
+#globalBar{height:100%;background:#22c55e;text-align:center;font-size:11px;color:#020617;font-weight:bold}
 </style>
 </head>
+
 <body>
 <div id="app">
+
 <h2>Study Buddy</h2>
 
-<!-- LOGIN -->
 <div id="login">
 <input id="nameInput" placeholder="Enter your name">
 <button onclick="login()">Continue</button>
 </div>
 
-<!-- MAIN APP -->
-<div id="main" style="display:none; width:100%;">
-<h3 id="hi"></h3>
+<div id="main" style="display:none">
+
 <input id="taskText" placeholder="Task name">
-<div class="date-inputs">
-<input id="month" type="number" placeholder="Month (1-12)" min="1" max="12">
-<input id="day" type="number" placeholder="Day" min="1" max="31">
-</div>
+<input id="month" type="number" placeholder="Month">
+<input id="day" type="number" placeholder="Day">
 <input id="time" type="time">
 <button onclick="addTask()">Add Task</button>
 
-<!-- Active Tasks -->
-<div class="section">
 <h3>Tasks</h3>
 <div id="tasks"></div>
+
+<h3>Finished</h3>
+<div id="finished"></div>
+
+<!-- GLOBAL PROGRESS -->
+<div id="globalBox">
+<div id="globalMsg">Keep it up ✨</div>
+<div id="globalWrap"><div id="globalBar">100%</div></div>
 </div>
 
-<!-- Finished Tasks -->
-<div class="section">
-<h3>Finished Tasks</h3>
-<div id="finishedTasks"></div>
-</div>
-</div>
-</div>
-
-<!-- EDIT MODAL -->
-<div id="editModal">
-<div class="modal-content">
-<h3>Edit Task</h3>
-<input id="editTaskName" placeholder="Task name">
-<div class="date-inputs">
-<input id="editMonth" type="number" placeholder="Month" min="1" max="12">
-<input id="editDay" type="number" placeholder="Day" min="1" max="31">
-</div>
-<input id="editTime" type="time">
-<div class="modal-buttons">
-<button onclick="saveEdit()">Save</button>
-<button onclick="closeEdit()">Cancel</button>
-</div>
 </div>
 </div>
 
 <audio id="notifSound" src="ping.mp3"></audio>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-
 <script>
-const firebaseConfig = {
- apiKey: "AIzaSyBRsUv_dJVjchdoqUodq95tQ8gUEJyUH_c",
- authDomain: "study-buddy-1ca03.firebaseapp.com",
- projectId: "study-buddy-1ca03",
- messagingSenderId: "441262046694",
- appId: "1:441262046694:web:7aede45840e6a636a5aa27",
-};
-firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging();
-
-// REGISTER ONCE
-if(!localStorage.getItem("registered")){
- Notification.requestPermission().then(p=>{
-  if(p==="granted") localStorage.setItem("registered","yes");
- });
-}
-navigator.serviceWorker.register("firebase-messaging-sw.js");
-
-// USER & TASKS
-let user="", tasks=[];
-let editIndex=null;
-const tasksDiv=document.getElementById("tasks");
-const finishedTasks=document.getElementById("finishedTasks");
-
-// LOGIN
-function login(){
- user=document.getElementById("nameInput").value.trim();
- if(!user) return;
- localStorage.user=user;
- document.getElementById("hi").innerText="Hi "+user+"!";
- document.getElementById("login").style.display="none";
- document.getElementById("main").style.display="block";
- loadTasks();
+if(!localStorage.reg){
+ Notification.requestPermission().then(p=>{if(p=="granted")localStorage.reg=1});
 }
 
-// AUTO LOGIN
-if(localStorage.user){
- user=localStorage.user;
- document.getElementById("hi").innerText="Hi "+user+"!";
- document.getElementById("login").style.display="none";
- document.getElementById("main").style.display="block";
- loadTasks();
-}
-
-// ADD TASK
-function addTask(){
- const t=document.getElementById("taskText").value.trim();
- const m=document.getElementById("month").value;
- const d=document.getElementById("day").value;
- const ti=document.getElementById("time").value;
- if(!t||!m||!d||!ti) return alert("Fill all fields");
-
- const deadline=new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${ti}:00`).getTime();
- tasks.push({t,deadline,done:false,notified1:false,notified3:false,notifiedDue:false});
- saveTasks(); renderTasks();
-}
-
-// SAVE / LOAD
-function saveTasks(){localStorage.tasks=JSON.stringify(tasks);}
-function loadTasks(){tasks=JSON.parse(localStorage.tasks||"[]"); renderTasks();}
-
-// TASK CONTROLS
-function markDone(i){tasks[i].done=true; saveTasks(); renderTasks();}
-function deleteTask(i){tasks.splice(i,1); saveTasks(); renderTasks();}
-function openEdit(i){
- editIndex=i;
- document.getElementById("editTaskName").value = tasks[i].t;
- const d = new Date(tasks[i].deadline);
- document.getElementById("editMonth").value = d.getMonth()+1;
- document.getElementById("editDay").value = d.getDate();
- document.getElementById("editTime").value = d.toTimeString().slice(0,5);
- document.getElementById("editModal").style.display="flex";
-}
-function closeEdit(){
- editIndex=null;
- document.getElementById("editModal").style.display="none";
-}
-function saveEdit(){
- const t=document.getElementById("editTaskName").value.trim();
- const m=document.getElementById("editMonth").value;
- const d=document.getElementById("editDay").value;
- const ti=document.getElementById("editTime").value;
- if(!t||!m||!d||!ti) return alert("Fill all fields");
- tasks[editIndex].t = t;
- tasks[editIndex].deadline = new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${ti}:00`).getTime();
- saveTasks(); renderTasks(); closeEdit();
-}
-function redoTask(i){tasks[i].done=false; saveTasks(); renderTasks();}
-
-// RENDER TASKS
-function renderTasks(){
- tasksDiv.innerHTML=""; finishedTasks.innerHTML="";
- tasks.forEach((x,i)=>{
-  const d=document.createElement("div");
-  d.className="task"+(x.done?" completed":"");
-  const dt=new Date(x.deadline).toLocaleString();
-
-  if(!x.done){ // Active task
-    d.innerHTML = `
-    <div class="task-controls">
-      <div class="task-left">
-        <input type="checkbox" onchange="markDone(${i})">
-        <b>${x.t}</b>
-      </div>
-      <div class="task-actions">
-        <button class="btn-icon btn-secondary" onclick="openEdit(${i})">⋮</button>
-        <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
-      </div>
-    </div>
-    <small>${dt}</small>
-    `;
-    tasksDiv.appendChild(d);
-  } else { // Finished task
-    d.innerHTML = `
-    <div class="task-controls">
-      <b>${x.t}</b>
-      <div class="task-actions">
-        <button class="btn-icon btn-secondary" onclick="redoTask(${i})">↩</button>
-        <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
-      </div>
-    </div>
-    <small>${dt}</small>
-    `;
-    finishedTasks.appendChild(d);
-  }
- });
-}
-
-// MOTIVATION LIST
-const motivation=[
- "📘 You can do this! Finish one task now.",
- "🔥 Small progress is still progress.",
- "⏳ Don’t wait, your future self will thank you.",
- "🚀 Let’s go! One task closer to success.",
- "📚 Open your notebook and start now!",
- "💡 5 minutes of work is better than 0.",
- "🎯 Focus time! Pick one task."
+const motivations=[
+ "📚 One task today is enough.",
+ "🔥 Start now, thank yourself later.",
+ "🚀 Small progress is still progress.",
+ "⏰ Your future is waiting.",
+ "💡 Discipline beats motivation."
 ];
 
-// NOTIFY
+let tasks=[];
+
 function notify(msg){
- if(Notification.permission==="granted"){
+ if(Notification.permission=="granted"){
   new Notification("Study Buddy",{body:msg,icon:"icon.png"});
   notifSound.play().catch(()=>{});
  }
 }
 
-// DEADLINE REMINDERS
-function checkTasks(){
- const now=Date.now();
- tasks.forEach(t=>{
-  if(t.done) return;
-  const diff=t.deadline-now;
+/* LOGIN */
+function login(){
+ if(nameInput.value.trim()) localStorage.user=nameInput.value;
+ loginDiv.style.display="none"; main.style.display="block"; load();
+}
+if(localStorage.user){loginDiv.style.display="none";main.style.display="block";load();}
 
-  if(diff<86400000 && diff>82800000 && !t.notified1){
-   notify(`📅 Tomorrow: ${t.t}`); t.notified1=true;
-  }
-  if(diff<10800000 && diff>10200000 && !t.notified3){
-   notify(`⏰ 3 hours left: ${t.t}`); t.notified3=true;
-  }
-  if(diff<60000 && diff>-60000 && !t.notifiedDue){
-   notify(`⚠️ DUE NOW: ${t.t}`); t.notifiedDue=true;
-  }
- });
- saveTasks();
+/* TASK SYSTEM */
+function addTask(){
+ if(!taskText.value||!month.value||!day.value||!time.value)return;
+ let d=new Date(`2026-${month.value.padStart(2,"0")}-${day.value.padStart(2,"0")}T${time.value}:00`).getTime();
+ tasks.push({t:taskText.value,deadline:d,done:false,n1:false,n3:false,nd:false});
+ save(); render();
 }
 
-// GLOBAL MOTIVATION EVERY 20 MIN
-function sendGlobalMotivation(){
+function save(){localStorage.tasks=JSON.stringify(tasks)}
+function load(){tasks=JSON.parse(localStorage.tasks||"[]");render()}
+
+function render(){
+ tasksDiv.innerHTML=""; finished.innerHTML="";
+ let pending=tasks.filter(t=>!t.done).length;
+
+ tasks.forEach((x,i)=>{
+  let div=document.createElement("div");
+  div.className="task"+(x.done?" completed":"")+(x.deadline<Date.now()&&!x.done?" due":"");
+  div.innerHTML=`<b>${x.t}</b><small>${new Date(x.deadline).toLocaleString()}</small>
+  <div class="actions">
+   ${!x.done?`<button class="btn" onclick="done(${i})">✓</button>`:`<button class="btn" onclick="redo(${i})">↩</button>`}
+   <button class="btn" onclick="del(${i})">✖</button>
+  </div>`;
+  (x.done?finished:tasksDiv).appendChild(div);
+ });
+
+ // GLOBAL BAR
+ let total=tasks.length||1;
+ let percent=Math.round(((total-pending)/total)*100);
+ globalBar.style.width=percent+"%"; globalBar.innerText=percent+"%";
+
+ if(percent==100) globalMsg.innerText="🎉 Well done! No tasks for today.";
+ else if(percent>=70) globalMsg.innerText="🔥 Keep it up!";
+ else if(percent>=40) globalMsg.innerText="⚡ Do your work!";
+ else globalMsg.innerText="⏰ You’re falling behind!";
+}
+
+/* ACTIONS */
+function done(i){tasks[i].done=true;save();render()}
+function redo(i){tasks[i].done=false;save();render()}
+function del(i){tasks.splice(i,1);save();render()}
+
+/* DEADLINE CHECK */
+function checkTasks(){
+ let now=Date.now();
+ tasks.forEach(t=>{
+  if(t.done)return;
+  let diff=t.deadline-now;
+  if(diff<86400000 && diff>82800000 && !t.n1){notify("📅 Tomorrow: "+t.t);t.n1=true;}
+  if(diff<10800000 && diff>10200000 && !t.n3){notify("⏰ 3 hours left: "+t.t);t.n3=true;}
+  if(diff<0 && !t.nd){notify("⚠️ DUE NOW: "+t.t);t.nd=true;}
+ });
+ save();
+}
+
+/* MOTIVATION EVERY 10 MINS */
+function sendMotivation(){
  if(tasks.some(t=>!t.done)){
-  const msg=motivation[Math.floor(Math.random()*motivation.length)];
-  notify(msg);
+  notify(motivations[Math.floor(Math.random()*motivations.length)]);
  }
 }
 
-setInterval(checkTasks,60000);       // deadline checker
-setInterval(sendGlobalMotivation,1200000); // motivation 20 mins
+setInterval(checkTasks,60000);
+setInterval(sendMotivation,600000);
 </script>
 </body>
 </html>
