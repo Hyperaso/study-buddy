@@ -9,7 +9,7 @@
     <style>
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
+            font-family: Arial,sans-serif;
             background: #0f172a;
             display: flex;
             justify-content: center;
@@ -228,6 +228,14 @@
         <input id="time" type="time">
         <button onclick="addTask()">Add Task</button>
 
+        <!-- Progress Bar -->
+        <div class="section">
+            <h3>Progress</h3>
+            <div style="background:#334155; border-radius:12px; width:100%; height:20px;">
+                <div id="progressBar" style="height:100%; width:100%; background:#22c55e; border-radius:12px; text-align:center; color:#020617; font-weight:bold;">100%</div>
+            </div>
+        </div>
+
         <!-- Active Tasks -->
         <div class="section">
             <h3>Tasks</h3>
@@ -326,6 +334,20 @@ function addTask(){
 function saveTasks(){localStorage.tasks=JSON.stringify(tasks);}
 function loadTasks(){tasks=JSON.parse(localStorage.tasks||"[]");renderTasks();}
 
+// PROGRESS BAR
+function updateProgress(){
+    if(tasks.length===0){
+        document.getElementById("progressBar").style.width="100%";
+        document.getElementById("progressBar").innerText="100%";
+        return;
+    }
+    const doneCount = tasks.filter(t=>t.done).length;
+    const percent = Math.round((doneCount/tasks.length)*100);
+    const bar = document.getElementById("progressBar");
+    bar.style.width=percent+"%";
+    bar.innerText=percent+"%";
+}
+
 // TASK CONTROLS
 function markDone(i){tasks[i].done=true; saveTasks(); renderTasks();}
 function deleteTask(i){tasks.splice(i,1); saveTasks(); renderTasks();}
@@ -357,10 +379,17 @@ function redoTask(i){tasks[i].done=false; saveTasks(); renderTasks();}
 function renderTasks(){
     tasksDiv.innerHTML="";
     finishedTasks.innerHTML="";
+    const now=Date.now();
     tasks.forEach((x,i)=>{
         const d=document.createElement("div");
         d.className="task"+(x.done?" completed":"");
+
+        // Check due date for color highlight
+        const isDue = (!x.done && x.deadline-now<=0);
+        if(isDue) d.style.background="#ef4444"; // Red for overdue
+
         const dt=new Date(x.deadline).toLocaleString();
+
         if(!x.done){
             d.innerHTML=`<div class="task-controls">
                 <div class="task-left">
@@ -386,6 +415,7 @@ function renderTasks(){
             finishedTasks.appendChild(d);
         }
     });
+    updateProgress(); // update progress bar every render
 }
 
 // MOTIVATION LIST
@@ -429,7 +459,7 @@ function checkTasks(){
     saveTasks();
 }
 
-// GLOBAL MOTIVATION EVERY 20 MIN
+// GLOBAL MOTIVATION EVERY 10 MIN
 function sendGlobalMotivation(){
     if(tasks.some(t=>!t.done)){
         const msg=motivation[Math.floor(Math.random()*motivation.length)];
@@ -438,7 +468,7 @@ function sendGlobalMotivation(){
 }
 
 setInterval(checkTasks,60000);
-setInterval(sendGlobalMotivation,1200000);
+setInterval(sendGlobalMotivation,600000); // 10 min
 </script>
 </body>
 </html>
