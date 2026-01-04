@@ -6,26 +6,20 @@
 <title>Study Buddy</title>
 <link rel="manifest" href="manifest.json">
 <style>
-body{margin:0;font-family:Arial;background:#020617;color:white;display:flex;justify-content:center}
-#app{width:390px;min-height:100vh;padding:15px}
-h2{color:#22c55e;text-align:center}
-input,button{width:100%;padding:12px;border-radius:10px;border:none;margin-top:8px}
-button{background:#22c55e;font-weight:bold}
+body{margin:0;font-family:Arial;background:#0f172a;display:flex;justify-content:center}
+#app{width:390px;background:#020617;min-height:100vh;padding:20px;color:white}
+
+.progress-box{margin:15px 0}
+.progress-msg{text-align:center;font-size:14px;margin-bottom:5px}
+.progress-bar{background:#1e293b;height:16px;border-radius:10px;overflow:hidden}
+.progress-fill{background:#22c55e;height:100%;width:0%;transition:.4s}
 
 .task{background:#1e293b;padding:12px;border-radius:12px;margin-top:10px}
-.task.due{border:2px solid #ef4444}
 .task.completed{text-decoration:line-through;color:#94a3b8}
-.actions{display:flex;justify-content:space-between;margin-top:8px}
-.btn{background:#020617;border:1px solid #334155;color:white;padding:6px 10px;border-radius:8px}
-
-/* GLOBAL BAR */
-#globalBox{margin-top:25px}
-#globalMsg{text-align:center;margin-bottom:6px;font-size:13px;color:#a5f3fc}
-#globalWrap{height:14px;background:#334155;border-radius:12px;overflow:hidden}
-#globalBar{height:100%;background:#22c55e;text-align:center;font-size:11px;color:#020617;font-weight:bold}
+.task.due{background:#7f1d1d;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
 </style>
 </head>
-
 <body>
 <div id="app">
 
@@ -38,122 +32,88 @@ button{background:#22c55e;font-weight:bold}
 
 <div id="main" style="display:none">
 
+<div class="progress-box">
+<div id="progressMsg" class="progress-msg">Add your tasks</div>
+<div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+</div>
+
 <input id="taskText" placeholder="Task name">
-<input id="month" type="number" placeholder="Month">
-<input id="day" type="number" placeholder="Day">
-<input id="time" type="time">
+<input id="date" type="datetime-local">
 <button onclick="addTask()">Add Task</button>
 
-<h3>Tasks</h3>
 <div id="tasks"></div>
-
-<h3>Finished</h3>
-<div id="finished"></div>
-
-<!-- GLOBAL PROGRESS -->
-<div id="globalBox">
-<div id="globalMsg">Keep it up ✨</div>
-<div id="globalWrap"><div id="globalBar">100%</div></div>
-</div>
-
-</div>
+<div id="finishedTasks"></div>
 </div>
 
 <audio id="notifSound" src="ping.mp3"></audio>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 <script>
-if(!localStorage.reg){
- Notification.requestPermission().then(p=>{if(p=="granted")localStorage.reg=1});
-}
+firebase.initializeApp({
+ apiKey:"AIzaSyBRsUv_dJVjchdoqUodq95tQ8gUEJyUH_c",
+ messagingSenderId:"441262046694",
+ appId:"1:441262046694:web:7aede45840e6a636a5aa27"
+});
+navigator.serviceWorker.register("firebase-messaging-sw.js");
 
-const motivations=[
- "📚 One task today is enough.",
- "🔥 Start now, thank yourself later.",
- "🚀 Small progress is still progress.",
- "⏰ Your future is waiting.",
- "💡 Discipline beats motivation."
-];
+let tasks=JSON.parse(localStorage.tasks||"[]");
+Notification.requestPermission();
 
-let tasks=[];
-
-function notify(msg){
- if(Notification.permission=="granted"){
-  new Notification("Study Buddy",{body:msg,icon:"icon.png"});
-  notifSound.play().catch(()=>{});
- }
-}
-
-/* LOGIN */
 function login(){
- if(nameInput.value.trim()) localStorage.user=nameInput.value;
- loginDiv.style.display="none"; main.style.display="block"; load();
+ localStorage.user=nameInput.value;
+ login.style.display="none";
+ main.style.display="block";
+ render();
 }
-if(localStorage.user){loginDiv.style.display="none";main.style.display="block";load();}
 
-/* TASK SYSTEM */
 function addTask(){
- if(!taskText.value||!month.value||!day.value||!time.value)return;
- let d=new Date(`2026-${month.value.padStart(2,"0")}-${day.value.padStart(2,"0")}T${time.value}:00`).getTime();
- tasks.push({t:taskText.value,deadline:d,done:false,n1:false,n3:false,nd:false});
- save(); render();
-}
-
-function save(){localStorage.tasks=JSON.stringify(tasks)}
-function load(){tasks=JSON.parse(localStorage.tasks||"[]");render()}
-
-function render(){
- tasksDiv.innerHTML=""; finished.innerHTML="";
- let pending=tasks.filter(t=>!t.done).length;
-
- tasks.forEach((x,i)=>{
-  let div=document.createElement("div");
-  div.className="task"+(x.done?" completed":"")+(x.deadline<Date.now()&&!x.done?" due":"");
-  div.innerHTML=`<b>${x.t}</b><small>${new Date(x.deadline).toLocaleString()}</small>
-  <div class="actions">
-   ${!x.done?`<button class="btn" onclick="done(${i})">✓</button>`:`<button class="btn" onclick="redo(${i})">↩</button>`}
-   <button class="btn" onclick="del(${i})">✖</button>
-  </div>`;
-  (x.done?finished:tasksDiv).appendChild(div);
- });
-
- // GLOBAL BAR
- let total=tasks.length||1;
- let percent=Math.round(((total-pending)/total)*100);
- globalBar.style.width=percent+"%"; globalBar.innerText=percent+"%";
-
- if(percent==100) globalMsg.innerText="🎉 Well done! No tasks for today.";
- else if(percent>=70) globalMsg.innerText="🔥 Keep it up!";
- else if(percent>=40) globalMsg.innerText="⚡ Do your work!";
- else globalMsg.innerText="⏰ You’re falling behind!";
-}
-
-/* ACTIONS */
-function done(i){tasks[i].done=true;save();render()}
-function redo(i){tasks[i].done=false;save();render()}
-function del(i){tasks.splice(i,1);save();render()}
-
-/* DEADLINE CHECK */
-function checkTasks(){
- let now=Date.now();
- tasks.forEach(t=>{
-  if(t.done)return;
-  let diff=t.deadline-now;
-  if(diff<86400000 && diff>82800000 && !t.n1){notify("📅 Tomorrow: "+t.t);t.n1=true;}
-  if(diff<10800000 && diff>10200000 && !t.n3){notify("⏰ 3 hours left: "+t.t);t.n3=true;}
-  if(diff<0 && !t.nd){notify("⚠️ DUE NOW: "+t.t);t.nd=true;}
- });
+ const t=taskText.value;
+ const d=new Date(date.value).getTime();
+ if(!t||!d) return;
+ tasks.push({t,deadline:d,done:false,lastOver:0});
  save();
 }
 
-/* MOTIVATION EVERY 10 MINS */
-function sendMotivation(){
- if(tasks.some(t=>!t.done)){
-  notify(motivations[Math.floor(Math.random()*motivations.length)]);
- }
+function save(){localStorage.tasks=JSON.stringify(tasks);render();}
+
+function render(){
+ tasksDiv.innerHTML="";
+ let done=tasks.filter(t=>t.done).length;
+ let percent=tasks.length?Math.round(done/tasks.length*100):100;
+ progressFill.style.width=percent+"%";
+ progressMsg.innerText = percent==100?"🎉 Well done! No task for today!":"⚠️ You still have tasks to finish";
+
+ tasks.forEach((x,i)=>{
+   const div=document.createElement("div");
+   const overdue=Date.now()>x.deadline&&!x.done;
+   div.className="task"+(x.done?" completed":"")+(overdue?" due":"");
+   div.innerHTML=`<input type="checkbox" ${x.done?"checked":""}
+   onchange="tasks[${i}].done=!tasks[${i}].done;save()"> ${x.t}`;
+   tasksDiv.appendChild(div);
+ });
 }
 
-setInterval(checkTasks,60000);
-setInterval(sendMotivation,600000);
+function notify(msg){
+ new Notification("Study Buddy",{body:msg});
+ notifSound.play().catch(()=>{});
+}
+
+// overdue alarm every 10 mins
+setInterval(()=>{
+ tasks.forEach(t=>{
+  if(!t.done && Date.now()>t.deadline && Date.now()-t.lastOver>600000){
+    notify("⚠️ DUE NOW: "+t.t);
+    t.lastOver=Date.now(); save();
+  }
+ });
+},600000);
+
+// motivation every 10 mins
+const motivation=["🔥 Start now","📚 Small progress","🚀 Do it today","⏳ Don't wait"];
+setInterval(()=>{ if(tasks.some(t=>!t.done)) notify(motivation[Math.floor(Math.random()*motivation.length)]) },600000);
+
+render();
 </script>
 </body>
 </html>
