@@ -270,6 +270,7 @@
 <audio id="notifSound" src="ping.mp3"></audio>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
 <script>
@@ -281,43 +282,53 @@ const firebaseConfig = {
     appId: "1:441262046694:web:7aede45840e6a636a5aa27",
 };
 firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
 const messaging = firebase.messaging();
+const VAPID_KEY = "BOfyCxT2wnHQdA6UW4wwG3WJvPtDTMlKpMLNwT7spsTg3FUyU80gW4iJasLQWsqmlqAffGR_ZGAaUWdrzNjawIU";
 
-// REGISTER ONCE
-if (!localStorage.getItem("registered")) {
-    Notification.requestPermission().then(p=>{
-        if(p==="granted") localStorage.setItem("registered","yes");
-    });
-}
-navigator.serviceWorker.register("firebase-messaging-sw.js");
-
-// USER & TASKS
-let user="", tasks=[];
-let editIndex=null;
+let user="", tasks=[], editIndex=null;
 const tasksDiv = document.getElementById("tasks");
 const finishedTasks = document.getElementById("finishedTasks");
 
-// LOGIN
+// ===== USER LOGIN =====
 function login(){
-    user=document.getElementById("nameInput").value.trim();
+    user = document.getElementById("nameInput").value.trim();
     if(!user) return;
-    localStorage.user=user;
-    document.getElementById("hi").innerText="Hi "+user+"!";
+    localStorage.user = user;
+    document.getElementById("hi").innerText = "Hi "+user+"!";
     document.getElementById("login").style.display="none";
     document.getElementById("main").style.display="block";
+    initFCM(user);
     loadTasks();
 }
 
-// AUTO LOGIN
 if(localStorage.user){
-    user=localStorage.user;
-    document.getElementById("hi").innerText="Hi "+user+"!";
+    user = localStorage.user;
+    document.getElementById("hi").innerText = "Hi "+user+"!";
     document.getElementById("login").style.display="none";
     document.getElementById("main").style.display="block";
+    initFCM(user);
     loadTasks();
 }
 
-// ADD TASK
+// ===== FCM TOKEN =====
+async function initFCM(username){
+    try{
+        const perm = await Notification.requestPermission();
+        if(perm === "granted"){
+            const token = await messaging.getToken({vapidKey: VAPID_KEY});
+            if(token){
+                await db.collection("users").doc(username).set({fcmToken: token}, {merge:true});
+                console.log("FCM token saved for user:", username, token);
+            }
+        }
+    } catch(err){
+        console.error("FCM init error:", err);
+    }
+}
+
+// ===== TASKS =====
 function addTask(){
     const t=document.getElementById("taskText").value.trim();
     const m=document.getElementById("month").value;
@@ -325,160 +336,100 @@ function addTask(){
     const ti=document.getElementById("time").value;
     if(!t||!m||!d||!ti) return alert("Fill all fields");
     const deadline=new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${ti}:00`).getTime();
-    tasks.push({t,deadline,done:false,notified1:false,notified3:false,notifiedDue:false});
-    saveTasks();
-    renderTasks();
+    const taskData = {t,deadline,done:false,notified1:false,notified3:false,notifiedDue:false,uid:user};
+    db.collection("tasks").add(taskData);
+    document.getElementById("taskText").value="";
+    document.getElementById("month").value="";
+    document.getElementById("day").value="";
+    document.getElementById("time").value="";
 }
 
-// SAVE / LOAD
-function saveTasks(){localStorage.tasks=JSON.stringify(tasks);}
-function loadTasks(){tasks=JSON.parse(localStorage.tasks||"[]");renderTasks();}
-
-// PROGRESS BAR
-function updateProgress(){
-    if(tasks.length===0){
-        document.getElementById("progressBar").style.width="100%";
-        document.getElementById("progressBar").innerText="100%";
-        return;
-    }
-    const doneCount = tasks.filter(t=>t.done).length;
-    const percent = Math.round((doneCount/tasks.length)*100);
-    const bar = document.getElementById("progressBar");
-    bar.style.width=percent+"%";
-    bar.innerText=percent+"%";
+// LOAD TASKS FROM FIRESTORE
+function loadTasks(){
+    db.collection("tasks").where("uid","==",user)
+      .onSnapshot(snap => {
+          tasks = [];
+          snap.forEach(d=>{
+              let t = d.data(); t.id=d.id; tasks.push(t);
+          });
+          renderTasks();
+      });
 }
 
 // TASK CONTROLS
-function markDone(i){tasks[i].done=true; saveTasks(); renderTasks();}
-function deleteTask(i){tasks.splice(i,1); saveTasks(); renderTasks();}
-function openEdit(i){
-    editIndex=i;
-    document.getElementById("editTaskName").value = tasks[i].t;
-    const d = new Date(tasks[i].deadline);
-    document.getElementById("editMonth").value = d.getMonth()+1;
-    document.getElementById("editDay").value = d.getDate();
-    document.getElementById("editTime").value = d.toTimeString().slice(0,5);
-    document.getElementById("editModal").style.display="flex";
-}
-function closeEdit(){ editIndex=null; document.getElementById("editModal").style.display="none"; }
-function saveEdit(){
-    const t=document.getElementById("editTaskName").value.trim();
-    const m=document.getElementById("editMonth").value;
-    const d=document.getElementById("editDay").value;
-    const ti=document.getElementById("editTime").value;
-    if(!t||!m||!d||!ti) return alert("Fill all fields");
-    tasks[editIndex].t = t;
-    tasks[editIndex].deadline = new Date(`2026-${m.padStart(2,"0")}-${d.padStart(2,"0")}T${ti}:00`).getTime();
-    saveTasks();
-    renderTasks();
-    closeEdit();
-}
-function redoTask(i){tasks[i].done=false; saveTasks(); renderTasks();}
+function markDone(i){ db.collection("tasks").doc(tasks[i].id).update({done:true}); }
+function redoTask(i){ db.collection("tasks").doc(tasks[i].id).update({done:false}); }
+function deleteTask(i){ db.collection("tasks").doc(tasks[i].id).delete(); }
 
-// RENDER TASKS
+// RENDER TASKS & PROGRESS
 function renderTasks(){
-    tasksDiv.innerHTML="";
-    finishedTasks.innerHTML="";
-    const now=Date.now();
+    tasksDiv.innerHTML=""; finishedTasks.innerHTML="";
+    const now = Date.now();
     tasks.forEach((x,i)=>{
-        const d=document.createElement("div");
+        const d = document.createElement("div");
         d.className="task"+(x.done?" completed":"");
-
-        // Check due date for color highlight
+        const diff = x.deadline-now;
         if(!x.done){
-            const diff = x.deadline - now;
-            if(diff <= 0){
-                d.style.background="#ef4444"; // overdue red
-            } else if(diff <= 3600000){ // 1 hour
-                d.style.background="#facc15"; // urgent yellow
-            } else {
-                d.style.background="#1e293b"; // normal
-            }
+            if(diff<=0) d.style.background="#ef4444";
+            else if(diff<=3600000) d.style.background="#facc15";
+            else d.style.background="#1e293b";
         }
-
-        const dt=new Date(x.deadline).toLocaleString();
-
+        const dt = new Date(x.deadline).toLocaleString();
         if(!x.done){
-            d.innerHTML=`<div class="task-controls">
-                <div class="task-left">
-                    <input type="checkbox" onchange="markDone(${i})">
-                    <b>${x.t}</b>
-                </div>
-                <div class="task-actions">
-                    <button class="btn-icon btn-secondary" onclick="openEdit(${i})">⋮</button>
-                    <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
-                </div>
-            </div>
-            <small>${dt}</small>`;
+            d.innerHTML=`<div class="task-controls"><div><input type="checkbox" onchange="markDone(${i})"><b>${x.t}</b></div>
+            <div><button onclick="deleteTask(${i})">✖</button></div></div><small>${dt}</small>`;
             tasksDiv.appendChild(d);
         } else {
-            d.innerHTML=`<div class="task-controls">
-                <b>${x.t}</b>
-                <div class="task-actions">
-                    <button class="btn-icon btn-secondary" onclick="redoTask(${i})">↩</button>
-                    <button class="btn-icon btn-danger" onclick="deleteTask(${i})">✖</button>
-                </div>
-            </div>
-            <small>${dt}</small>`;
+            d.innerHTML=`<div class="task-controls"><b>${x.t}</b>
+            <div><button onclick="redoTask(${i})">↩</button><button onclick="deleteTask(${i})">✖</button></div></div><small>${dt}</small>`;
             finishedTasks.appendChild(d);
         }
     });
     updateProgress();
 }
 
-// MOTIVATION LIST
-const motivation=[
-    "📘 You can do this! Finish one task now.",
-    "🔥 Small progress is still progress.",
-    "⏳ Don’t wait, your future self will thank you.",
-    "🚀 Let’s go! One task closer to success.",
-    "📚 Open your notebook and start now!",
-    "💡 5 minutes of work is better than 0.",
-    "🎯 Focus time! Pick one task."
-];
-
-// NOTIFY
-function notify(msg){
-    if(Notification.permission==="granted"){
-        new Notification("Study Buddy",{body:msg,icon:"icon.png"});
-        notifSound.play().catch(()=>{});
-    }
+function updateProgress(){
+    if(tasks.length===0){ document.getElementById("progressBar").style.width="100%"; document.getElementById("progressBar").innerText="100%"; return; }
+    const doneCount = tasks.filter(t=>t.done).length;
+    const percent = Math.round((doneCount/tasks.length)*100);
+    const bar = document.getElementById("progressBar");
+    bar.style.width=percent+"%"; bar.innerText=percent+"%";
 }
 
-// DEADLINE REMINDERS
+// MOTIVATION + NOTIFY
+const motivation=["📘 You can do this! Finish one task now.","🔥 Small progress is still progress.","⏳ Don’t wait, your future self will thank you.","🚀 One task closer to success!"];
+
+function notify(msg){
+    if(Notification.permission==="granted") new Notification("Study Buddy",{body:msg,icon:"icon.png"});
+}
+
+// CHECK TASK DEADLINES
 function checkTasks(){
-    const now=Date.now();
+    const now = Date.now();
     tasks.forEach(t=>{
         if(t.done) return;
-        const diff=t.deadline-now;
+        const diff = t.deadline-now;
         if(diff<86400000 && diff>82800000 && !t.notified1){
-            notify(`📅 Tomorrow: ${t.t}`);
-            t.notified1=true;
+            notify("📅 Tomorrow: "+t.t);
+            db.collection("tasks").doc(t.id).update({notified1:true});
         }
         if(diff<10800000 && diff>10200000 && !t.notified3){
-            notify(`⏰ 3 hours left: ${t.t}`);
-            t.notified3=true;
+            notify("⏰ 3 hours left: "+t.t);
+            db.collection("tasks").doc(t.id).update({notified3:true});
         }
         if(diff<60000 && diff>-60000 && !t.notifiedDue){
-            notify(`⚠️ DUE NOW: ${t.t}`);
-            t.notifiedDue=true;
+            notify("⚠️ DUE NOW: "+t.t);
+            db.collection("tasks").doc(t.id).update({notifiedDue:true});
         }
-    });																					
-    saveTasks();
+    });
 }
 
-// GLOBAL MOTIVATION EVERY 10 MIN
-function sendGlobalMotivation(){
-    if(tasks.some(t=>!t.done)){
-        const msg=motivation[Math.floor(Math.random()*motivation.length)];
-        notify(msg);
-    }
-}
+// INTERVALS
+setInterval(checkTasks,30000);
+setInterval(()=>{ if(tasks.some(t=>!t.done)) notify(motivation[Math.floor(Math.random()*motivation.length)]); },600000);
 
-// --- NEW INTERVALS FOR AUTO UPDATE ---
-setInterval(renderTasks, 10000); // every 10 sec, update highlight
-setInterval(checkTasks, 30000); // every 30 sec, check notifications
-setInterval(sendGlobalMotivation,600000); // 10 min
+// REGISTER SERVICE WORKER
+navigator.serviceWorker.register("firebase-messaging-sw.js");
 </script>
 </body>
 </html>
