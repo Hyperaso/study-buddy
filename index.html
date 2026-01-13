@@ -385,8 +385,16 @@ function renderTasks(){
         d.className="task"+(x.done?" completed":"");
 
         // Check due date for color highlight
-        const isDue = (!x.done && x.deadline-now<=0);
-        if(isDue) d.style.background="#ef4444"; // Red for overdue
+        if(!x.done){
+            const diff = x.deadline - now;
+            if(diff <= 0){
+                d.style.background="#ef4444"; // overdue red
+            } else if(diff <= 3600000){ // 1 hour
+                d.style.background="#facc15"; // urgent yellow
+            } else {
+                d.style.background="#1e293b"; // normal
+            }
+        }
 
         const dt=new Date(x.deadline).toLocaleString();
 
@@ -415,7 +423,7 @@ function renderTasks(){
             finishedTasks.appendChild(d);
         }
     });
-    updateProgress(); // update progress bar every render
+    updateProgress();
 }
 
 // MOTIVATION LIST
@@ -467,8 +475,11 @@ function sendGlobalMotivation(){
     }
 }
 
-setInterval(checkTasks,60000);
+// --- NEW INTERVALS FOR AUTO UPDATE ---
+setInterval(renderTasks, 10000); // every 10 sec, update highlight
+setInterval(checkTasks, 30000); // every 30 sec, check notifications
 setInterval(sendGlobalMotivation,600000); // 10 min
 </script>
 </body>
 </html>
+
