@@ -6,6 +6,11 @@
     <title>Study Buddy</title>
     <link rel="manifest" href="manifest.json">
 
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <style>
         body {
             margin: 0;
@@ -32,19 +37,8 @@
             box-sizing: border-box;
         }
 
-        h2 {
-            text-align: center;
-            color: #22c55e;
-            margin-bottom: 20px;
-        }
-
-        h3 {
-            color: #f8fafc;
-            margin-top: 20px;
-            width: 100%;
-            border-bottom: 1px solid #334155;
-            padding-bottom: 5px;
-        }
+        h2 { text-align: center; color: #22c55e; margin-bottom: 20px; }
+        h3 { color: #f8fafc; margin-top: 20px; width: 100%; border-bottom: 1px solid #334155; padding-bottom: 5px; }
 
         input, button {
             width: 100%;
@@ -56,11 +50,7 @@
             box-sizing: border-box;
         }
 
-        input:focus {
-            outline: none;
-            border: 1px solid #22c55e;
-        }
-
+        input:focus { outline: none; border: 1px solid #22c55e; }
         button {
             background: #22c55e;
             color: #020617;
@@ -68,10 +58,7 @@
             cursor: pointer;
             transition: 0.3s;
         }
-
-        button:hover {
-            background: #16a34a;
-        }
+        button:hover { background: #16a34a; }
 
         /* TASK STYLES */
         .task {
@@ -84,107 +71,38 @@
             box-sizing: border-box;
             color: #f8fafc;
         }
-
-        .task.completed {
-            text-decoration: line-through;
-            color: #94a3b8;
-        }
+        .task.completed { text-decoration: line-through; color: #94a3b8; }
 
         /* TASK CONTROLS */
-        .task-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        .task-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .task-left input[type=checkbox] {
-            width: 20px;
-            height: 20px;
-            accent-color: #22c55e;
-            cursor: pointer;
-        }
-
-        .task-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-icon {
-            background: #020617;
-            border: 1px solid #334155;
-            color: white;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-icon:hover {
-            background: #22c55e;
-            color: #020617;
-        }
-
-        .btn-danger:hover {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #3b82f6;
-            color: white;
-        }
+        .task-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .task-left { display: flex; align-items: center; gap: 10px; }
+        .task-left input[type=checkbox] { width: 20px; height: 20px; accent-color: #22c55e; cursor: pointer; }
+        .task-actions { display: flex; gap: 8px; }
+        .btn-icon { background: #020617; border: 1px solid #334155; color: white; padding: 6px 10px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .btn-icon:hover { background: #22c55e; color: #020617; }
+        .btn-danger:hover { background: #ef4444; color: white; }
+        .btn-secondary:hover { background: #3b82f6; color: white; }
 
         /* DATE INPUTS */
-        .date-inputs {
-            display: flex;
-            gap: 5px;
-            margin-top: 8px;
-            width: 100%;
-        }
-
-        .date-inputs input {
-            flex: 1;
-        }
+        .date-inputs { display: flex; gap: 5px; margin-top: 8px; width: 100%; }
+        .date-inputs input { flex: 1; }
 
         /* SECTION */
-        .section {
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .section h3 {
-            margin-bottom: 10px;
-            color: #f8fafc;
-        }
-
-        #tasks, #finishedTasks {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-        }
+        .section { margin-top: 20px; width: 100%; }
+        .section h3 { margin-bottom: 10px; color: #f8fafc; }
+        #tasks, #finishedTasks { display: flex; flex-direction: column; width: 100%; }
 
         /* EDIT MODAL */
         #editModal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0,0,0,0.7);
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
-
         #editModal .modal-content {
             background: #1e293b;
             padding: 20px;
@@ -194,16 +112,8 @@
             flex-direction: column;
             gap: 10px;
         }
-
-        #editModal input {
-            width: 100%;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
+        #editModal input { width: 100%; }
+        .modal-buttons { display: flex; justify-content: space-between; gap: 10px; }
     </style>
 </head>
 
@@ -289,7 +199,7 @@ if (!localStorage.getItem("registered")) {
         if(p==="granted") localStorage.setItem("registered","yes");
     });
 }
-navigator.serviceWorker.register("firebase-messaging-sw.js");
+navigator.serviceWorker.register("firebase-messaging-sw.js").catch(()=>{});
 
 // USER & TASKS
 let user="", tasks=[];
@@ -384,16 +294,11 @@ function renderTasks(){
         const d=document.createElement("div");
         d.className="task"+(x.done?" completed":"");
 
-        // Check due date for color highlight
         if(!x.done){
             const diff = x.deadline - now;
-            if(diff <= 0){
-                d.style.background="#ef4444"; // overdue red
-            } else if(diff <= 3600000){ // 1 hour
-                d.style.background="#facc15"; // urgent yellow
-            } else {
-                d.style.background="#1e293b"; // normal
-            }
+            if(diff <= 0){ d.style.background="#ef4444"; }
+            else if(diff <= 3600000){ d.style.background="#facc15"; }
+            else { d.style.background="#1e293b"; }
         }
 
         const dt=new Date(x.deadline).toLocaleString();
@@ -437,11 +342,13 @@ const motivation=[
     "🎯 Focus time! Pick one task."
 ];
 
-// NOTIFY
+// NOTIFY WITH IOS FALLBACK
 function notify(msg){
     if(Notification.permission==="granted"){
         new Notification("Study Buddy",{body:msg,icon:"icon.png"});
         notifSound.play().catch(()=>{});
+    } else {
+        alert(msg); // iOS fallback
     }
 }
 
@@ -475,11 +382,10 @@ function sendGlobalMotivation(){
     }
 }
 
-// --- NEW INTERVALS FOR AUTO UPDATE ---
-setInterval(renderTasks, 10000); // every 10 sec, update highlight
-setInterval(checkTasks, 30000); // every 30 sec, check notifications
-setInterval(sendGlobalMotivation,600000); // 10 min
+// --- INTERVALS ---
+setInterval(renderTasks, 10000);
+setInterval(checkTasks, 30000);
+setInterval(sendGlobalMotivation,600000);
 </script>
 </body>
 </html>
-
